@@ -1,8 +1,8 @@
 //@ts-nocheck
 
-import { stringifyFast } from "graphscript-core";
-import { Service, ServiceOptions } from "graphscript-core";
-import { loaders } from "graphscript-core";
+import { stringifyFast } from "../../../../graphscript-core/index";
+import { Service, ServiceOptions } from "../../../../graphscript-core/index";
+import { loaders } from "../../../../graphscript-core/index";
 
 import { User } from "../router/Router";
 
@@ -63,6 +63,7 @@ export type SharedSessionProps = {
         name:string,
         propnames:{[key:string]:boolean},
         users?:{[key:string]:boolean},
+        maxUsers?:number,
         host?:string, //if there is a host, all users only receive from the host's prop updates and vise versa
         hostprops?:{[key:string]:boolean},
         inheritHostData?:boolean, //new hosts adopt old host data? Default true
@@ -152,14 +153,23 @@ export class SessionsService extends Service {
                 let s = this.sessions.oneWay[sessionIdOrName];
                 if(s.settings)
                     if(s.settings.source === userId || s.settings.listener === userId || s.settings.ownerId === userId || s.settings.admins?.[userId as string] || s.settings.moderators?.[userId as string])
-                        return {oneWay:{[sessionIdOrName]:s}};
+                        {
+                            const res = {...s.settings};
+                            delete res.password;
+                            return {oneWay:{[sessionIdOrName]:res}};
+                        }
             } else if(this.sessions.shared[sessionIdOrName]) {
-                return {shared:{[sessionIdOrName]:this.sessions.shared[sessionIdOrName]}};
+                const res = {...this.sessions.shared[sessionIdOrName]?.settings};
+                delete res.password;
+                return {shared:{[sessionIdOrName]:res}};
             } else {
                 let res = {};
                 for(const id in this.sessions.shared) {
-                    if(this.sessions.shared[id].settings?.name) //get by name
-                        res[id] = this.sessions.shared.settings;
+                    if(this.sessions.shared[id].settings?.name === sessionIdOrName) //get by name
+                        {
+                            res[id] = {...this.sessions.shared[id]?.settings};
+                            delete res[id].password;
+                        }
                 }
                 if(Object.keys(res).length > 0) return res;
             }
@@ -311,6 +321,7 @@ export class SessionsService extends Service {
                 if(!options?.settings?.password) return false;
                 if(options.settings.password !== sesh.settings.password) return false
             }
+            if(sesh.settings.maxUsers && Object.keys(sesh.settings.users) > sesh.setting.maxUsers) return false;
             (sesh.settings.users as any)[userId] = true;
             sesh.settings.newUser = true;
             this.users[userId].sessions[sessionId] = sesh;
