@@ -1,4 +1,4 @@
-import { Service, ServiceOptions } from "graphscript-core";
+import { Service, ServiceOptions } from "graphscript-core/index";
 import { User } from "../router/Router";
 /**
  * Sessions are a way to run a loop that monitors data structures to know procedurally when and what to update
@@ -64,6 +64,7 @@ export type SharedSessionProps = {
         users?: {
             [key: string]: boolean;
         };
+        maxUsers?: number;
         host?: string;
         hostprops?: {
             [key: string]: boolean;
@@ -220,10 +221,10 @@ export declare class SessionsService extends Service {
             [key: string]: any;
         };
         settings: {
-            [key: string]: any;
             keys?: string[];
-            callback?: 0 | Function | 1;
+            callback?: 0 | 1 | Function;
             lastRead?: number;
+            [key: string]: any;
         };
         onupdate?: (data: any, streamSettings: any) => void;
         onclose?: (streamSettings: any) => void;

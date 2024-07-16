@@ -1,8 +1,8 @@
 //@ts-nocheck
 
-import { stringifyFast } from "../../../../graphscript-core/index";
-import { Service, ServiceOptions } from "../../../../graphscript-core/index";
-import { loaders } from "../../../../graphscript-core/index";
+import { stringifyFast } from "graphscript-core/index";
+import { Service, ServiceOptions } from "graphscript-core/index";
+import { loaders } from "graphscript-core/index";
 
 import { User } from "../router/Router";
 
