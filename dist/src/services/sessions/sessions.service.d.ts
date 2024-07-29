@@ -3,20 +3,23 @@ import { User } from "../router/Router";
 /**
  * Sessions are a way to run a loop that monitors data structures to know procedurally when and what to update
  *
- * OneWaySession: source sends props to listener, define listener, source default is creating user
+ * StreamSession: source sends props to listener, define listener, source default is creating user
  * SharedSession: two modes:
- *  Hosted: Host receives props from all users based on propnames, users receive hostprops
+ *  Hosted: Host receives props from all users based on sessionUserProps, while users receive hostprops
  *  Shared: All users receive the same props based on their own updates
  *
  * There's also these older stream API functions that are more pure for monitoring objects/arrays and updating new data e.g. out of a buffer.
  * Need to esplain/demo all that too.... @@__@@
  */
-export type OneWaySessionProps = {
+export type StreamSessionProps = {
     _id?: string;
     settings?: {
         listener: string;
         source: string;
-        propnames: {
+        sessionUserProps: {
+            [key: string]: boolean;
+        };
+        inputBuffers?: {
             [key: string]: boolean;
         };
         admins?: {
@@ -27,10 +30,10 @@ export type OneWaySessionProps = {
         };
         password?: string;
         ownerId?: string;
-        onopen?: (session: OneWaySessionProps) => void;
-        onhasupdate?: (session: OneWaySessionProps, updated: any) => void;
-        onmessage?: (session: OneWaySessionProps, updated: any) => void;
-        onclose?: (session: OneWaySessionProps) => void;
+        onopen?: (session: StreamSessionProps) => void;
+        onhasupdate?: (session: StreamSessionProps, updated: any) => void;
+        onmessage?: (session: StreamSessionProps, updated: any) => void;
+        onclose?: (session: StreamSessionProps) => void;
         [key: string]: any;
     };
     data?: {
@@ -52,13 +55,19 @@ export type SessionUser = {
             onclose?: (session: SharedSessionProps, user: SessionUser) => void;
         };
     };
-    [key: string]: any;
+    inputBuffers?: {
+        [key: string]: boolean;
+    };
+    [props: string]: any;
 } & User;
 export type SharedSessionProps = {
     _id?: string;
     settings?: {
         name: string;
-        propnames: {
+        sessionUserProps: {
+            [key: string]: boolean;
+        };
+        inputBuffers?: {
             [key: string]: boolean;
         };
         users?: {
@@ -66,7 +75,7 @@ export type SharedSessionProps = {
         };
         maxUsers?: number;
         host?: string;
-        hostprops?: {
+        sessionHostProps?: {
             [key: string]: boolean;
         };
         inheritHostData?: boolean;
@@ -96,7 +105,7 @@ export type SharedSessionProps = {
                 [key: string]: any;
             };
         };
-        oneWay?: {
+        host?: {
             [key: string]: any;
         };
         [key: string]: any;
@@ -104,29 +113,14 @@ export type SharedSessionProps = {
     lastTransmit?: string | number;
     [key: string]: any;
 };
-export type StreamInfo = {
-    [key: string]: {
-        object: {
-            [key: string]: any;
-        };
-        settings: {
-            keys?: string[];
-            callback?: 0 | 1 | Function;
-            lastRead?: number;
-            [key: string]: any;
-        };
-        onupdate?: (data: any, streamSettings: any) => void;
-        onclose?: (streamSettings: any) => void;
-    };
-};
 export declare class SessionsService extends Service {
     name: string;
     users: {
         [key: string]: SessionUser;
     };
     sessions: {
-        oneWay: {
-            [key: string]: OneWaySessionProps;
+        stream: {
+            [key: string]: StreamSessionProps;
         };
         shared: {
             [key: string]: SharedSessionProps;
@@ -135,7 +129,7 @@ export declare class SessionsService extends Service {
     invites: {
         [key: string]: {
             [key: string]: {
-                session: OneWaySessionProps | SharedSessionProps | string;
+                session: StreamSessionProps | SharedSessionProps | string;
                 endpoint?: string;
             };
         };
@@ -143,100 +137,98 @@ export declare class SessionsService extends Service {
     constructor(options?: ServiceOptions, users?: {
         [key: string]: SessionUser;
     });
-    getSessionInfo: (sessionIdOrName?: string, userId?: string) => {};
-    openOneWaySession: (options?: OneWaySessionProps, sourceUserId?: string, listenerUserId?: string) => any;
-    openSharedSession: (options: SharedSessionProps, userId?: string) => any;
-    open: (options: any, userId?: string) => void;
-    updateSession: (options: OneWaySessionProps | SharedSessionProps, userId?: string) => any;
-    joinSession: (sessionId: string, userId: string, options?: SharedSessionProps | OneWaySessionProps, remoteUser?: boolean) => SharedSessionProps | OneWaySessionProps | false;
-    inviteToSession: (session: OneWaySessionProps | SharedSessionProps | string, userInvited: string, inviteEndpoint?: string, remoteUser?: boolean) => void;
-    receiveSessionInvite: (session: OneWaySessionProps | SharedSessionProps | string, userInvited: string, endpoint?: string) => string;
-    acceptInvite: (session: OneWaySessionProps | SharedSessionProps | string, userInvited: string, remoteUser?: boolean) => Promise<SharedSessionProps | OneWaySessionProps | false>;
-    rejectInvite: (session: OneWaySessionProps | SharedSessionProps | string, userInvited: string, remoteUser?: boolean) => boolean;
-    leaveSession: (session: OneWaySessionProps | SharedSessionProps | string, userId: string, clear?: boolean, remoteUser?: boolean) => boolean;
-    deleteSession: (session: string | OneWaySessionProps | SharedSessionProps, userId: string, remoteUsers?: boolean) => boolean;
+    getStreams: (userId: string, sessionId?: string, password?: string, getData?: boolean) => {};
+    getSessionInfo: (userId?: string, sessionIdOrName?: string, password?: string, getData?: boolean) => {};
+    createSessionUser: (_id?: string, props?: {}) => SessionUser;
+    openStreamSession: (options?: StreamSessionProps, sourceUserId?: string, listenerUserId?: string, newSession?: boolean) => any;
+    openSharedSession: (options: SharedSessionProps, userId?: string, newSession?: boolean) => any;
+    open: (options: any, userId?: string, listenerId?: string) => any;
+    updateSession: (options: StreamSessionProps | SharedSessionProps, userId?: string) => any;
+    joinSession: (sessionId: string, userId: string, sessionOptions?: SharedSessionProps | StreamSessionProps, remoteUser?: boolean) => SharedSessionProps | StreamSessionProps | false;
+    inviteToSession: (session: StreamSessionProps | SharedSessionProps | string, userIdInvited: string, inviteEndpoint?: string, remoteUser?: boolean) => void;
+    receiveSessionInvite: (session: StreamSessionProps | SharedSessionProps | string, userIdInvited: string, endpoint?: string) => string;
+    acceptInvite: (session: StreamSessionProps | SharedSessionProps | string, userIdInvited: string, remoteUser?: boolean) => Promise<SharedSessionProps | StreamSessionProps | false>;
+    rejectInvite: (session: StreamSessionProps | SharedSessionProps | string, userIdInvited: string, remoteUser?: boolean) => boolean;
+    leaveSession: (session: StreamSessionProps | SharedSessionProps | string, userId: string, clear?: boolean, remoteUser?: boolean) => boolean;
+    deleteSession: (session: string | StreamSessionProps | SharedSessionProps, userId: string, remoteUsers?: boolean) => boolean;
     getFirstMatch(obj1: {
         [key: string]: any;
     }, obj2: {
         [key: string]: any;
     }): string | false;
-    swapHost: (session: OneWaySessionProps | SharedSessionProps | string, newHostId?: string, adoptData?: boolean, remoteUser?: boolean) => boolean;
-    subscribeToSession: (session: SharedSessionProps | OneWaySessionProps | string, userId: string, onmessage?: (session: SharedSessionProps | OneWaySessionProps, update: any, user: SessionUser) => void, onopen?: (session: SharedSessionProps | OneWaySessionProps, user: SessionUser) => void, onclose?: (session: SharedSessionProps | OneWaySessionProps, user: SessionUser) => void) => OneWaySessionProps | SharedSessionProps;
-    unsubsribeFromSession: (session: SharedSessionProps | OneWaySessionProps | string, userId?: string, clear?: boolean) => any;
-    sessionUpdateCheck: (sessionHasUpdate?: (session: OneWaySessionProps | SharedSessionProps, update: {
+    swapHost: (session: StreamSessionProps | SharedSessionProps | string, newHostId?: string, adoptData?: boolean, remoteUser?: boolean) => boolean;
+    subscribeToSession: (session: SharedSessionProps | StreamSessionProps | string, userId: string, onmessage?: (session: SharedSessionProps | StreamSessionProps, update: any, user: SessionUser) => void, onopen?: (session: SharedSessionProps | StreamSessionProps, user: SessionUser) => void, onclose?: (session: SharedSessionProps | StreamSessionProps, user: SessionUser) => void) => StreamSessionProps | SharedSessionProps;
+    unsubsribeFromSession: (session: SharedSessionProps | StreamSessionProps | string, userId?: string, clear?: boolean) => any;
+    processStreamSession: (session: StreamSessionProps, updateObj: any, inputBuffers: any) => any;
+    processSharedSession: (session: SharedSessionProps, updateObj: any, inputBuffers: any) => any;
+    getStreamSessionUpdates: (sessionHasUpdate?: (session: StreamSessionProps, update: {
+        stream?: any;
+    }) => void) => {
+        streamUpdates: any;
+        inputBuffers: {};
+    };
+    getSharedSessionUpdates: (sessionHasUpdate?: (session: SharedSessionProps, update: {
         shared?: any;
-        oneWay?: any;
-    }) => void, transmit?: boolean) => any;
-    transmitSessionUpdates: (updates: {
-        oneWay: {
-            [key: string]: any;
-        };
-        shared: {
-            [key: string]: any;
-        };
-    }) => {};
-    receiveSessionUpdates: (origin: any, update: {
-        oneWay: {
-            [key: string]: any;
-        };
-        shared: {
-            [key: string]: any;
-        };
-    } | string) => SessionUser;
-    getUpdatedUserData: (user: SessionUser) => {};
-    userUpdateCheck: (user: SessionUser, onupdate?: (user: SessionUser, updateObj: {
+    }) => void) => {
+        sharedUpdates: any;
+        inputBuffers: {};
+    };
+    userUpdates: {
         [key: string]: any;
-    }) => void) => {};
+    };
+    sessionUpdateCheck: (sessionHasUpdate?: (session: StreamSessionProps | SharedSessionProps, update: {
+        shared?: any;
+        stream?: any;
+    }) => void, transmit?: boolean) => any;
+    applyUserUpdates: () => void;
+    transmitSessionUpdates: (updates: {
+        stream: {
+            [key: string]: any;
+        };
+        shared: {
+            [key: string]: any;
+        };
+    }, clearBuffers: {
+        [key: string]: boolean;
+    }) => {};
+    userUpdateCheck: (user: SessionUser | string, onupdate?: (user: SessionUser, updateObj: {
+        [key: string]: any;
+    }) => void) => {
+        data: {};
+    };
+    receiveSessionUpdates: (forUserId: any, update: {
+        stream: {
+            [key: string]: any;
+        };
+        shared: {
+            [key: string]: any;
+        };
+    } | string) => false | SessionUser;
+    getUserSessionData: (user: SessionUser, sessionNameOrId: string) => any;
+    getUpdatedUserData: (user: SessionUser) => {
+        data: {};
+    };
     setUserProps: (user: string | SessionUser, props: {
         [key: string]: any;
     } | string) => boolean;
+    bufferInputs: (user: string | SessionUser, inputBuffers: {
+        [key: string]: any;
+    }) => boolean;
     userUpdateLoop: {
-        __operator: (user: SessionUser, onupdate?: (user: SessionUser, updateObj: {
+        __operator: (user: SessionUser | string, onupdate?: (user: SessionUser, updateObj: {
             [key: string]: any;
-        }) => void) => {};
+        }) => void) => {
+            data: {};
+        };
         __node: {
             loop: number;
         };
     };
     sessionLoop: {
-        __operator: (sessionHasUpdate?: (session: OneWaySessionProps | SharedSessionProps, update: {
+        __operator: (sessionHasUpdate?: (session: StreamSessionProps | SharedSessionProps, update: {
             shared?: any;
-            oneWay?: any;
+            stream?: any;
         }) => void, transmit?: boolean) => any;
-        __node: {
-            loop: number;
-        };
-    };
-    STREAMLATEST: number;
-    STREAMALLLATEST: number;
-    streamSettings: StreamInfo;
-    streamFunctions: any;
-    setStreamFunc: (name: string, key: string, callback?: 0 | 1 | Function) => boolean;
-    addStreamFunc: (name: any, callback?: (data: any) => void) => void;
-    setStream: (object?: {}, settings?: {
-        keys?: string[];
-        callback?: Function;
-    }, streamName?: string, onupdate?: (update: any, settings: any) => void, onclose?: (settings: any) => void) => {
-        object: {
-            [key: string]: any;
-        };
-        settings: {
-            keys?: string[];
-            callback?: 0 | 1 | Function;
-            lastRead?: number;
-            [key: string]: any;
-        };
-        onupdate?: (data: any, streamSettings: any) => void;
-        onclose?: (streamSettings: any) => void;
-    };
-    removeStream: (streamName: any, key: any) => boolean;
-    updateStreamData: (streamName: any, data?: {}) => false | {
-        [key: string]: any;
-    };
-    getStreamUpdate: (streamName: string) => {};
-    getAllStreamUpdates: () => {};
-    streamLoop: {
-        __operator: () => {};
         __node: {
             loop: number;
         };
