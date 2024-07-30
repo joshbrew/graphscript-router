@@ -1,7 +1,8 @@
 import {
-    InputBuffer, CircularBuffer, DelayBuffer, DelayBufferManager,
+    InputBuffer, CircularBuffer, DelayBuffer, DelayBufferManager, DelayedGetterRules
+} from './buffers'
+import {
     SessionManager,
-    DelayedGetterRules
 } from './sessions'
 
 

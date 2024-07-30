@@ -1,6 +1,6 @@
 import {
   InputBuffer, CircularBuffer, DelayBuffer, DelayBufferManager,
-} from '../../src/services/sessions/sessions'
+} from '../../src/services/sessions/buffers'
 import {
   testDelayBuffers,testDelayBufferManagers, testSessionManagers, testCombinedManagers
 }  from '../../src/services/sessions/tests'
