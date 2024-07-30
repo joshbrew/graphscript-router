@@ -34,7 +34,7 @@ export class SessionService extends Service {
         let routes = {};
         for(const key in this.sessionManager) {
             if(typeof this.sessionManager[key] === 'function') {
-                routes[key] = (userId, token, ...args) => {
+                routes[key] = (userId, token, ...args) => { //lead all sessionManager calls with userId and token then supply the normal arguments
                     if(this.users[userId] && this.tokens[userId] && this.tokens[userId] === token) {
                         return this.sessionManager[key](...args); //validate user activity with tokens
                     } else throw new Error("User needs to be registered with a token");
@@ -46,7 +46,15 @@ export class SessionService extends Service {
 
     }
 
-    generateToken = () => {
+    //we will need this to verify users on their endpoints
+    setSessionToken = (userId, token, remote?) => {
+        if(remote && this.users[userId])
+            this.users[userId].send({route:'setSessionToken', args:[userId, token]})
+        else
+            this.tokens[userId] = token;
+    }
+
+    generateSessionToken = () => {
         return `${Math.floor(Math.random()*1000000000000000)}`;
     }
 
@@ -58,14 +66,6 @@ export class SessionService extends Service {
             updatedSessions = this.sessionData[key];
         }
         return updatedSessions;
-    }
-
-    //we will need this to verify users on their endpoints
-    setToken = (userId, token, remote?) => {
-        if(remote && this.users[userId])
-            this.users[userId].send({route:'setToken', args:[userId, token]})
-        else
-            this.tokens[userId] = token;
     }
 
 }
