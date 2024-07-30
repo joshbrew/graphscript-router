@@ -8,13 +8,17 @@ export declare class SessionService extends Service {
     tokens: {
         [key: string]: string;
     };
+    useTokens: boolean;
     sessionManager: SessionManager;
     sessionData: {
         [key: string]: any;
     };
-    constructor(options: ServiceOptions, globalPollInterval: any);
-    setToken: (userId: any, token: any) => void;
+    constructor(options: ServiceOptions, globalPollInterval: number, users?: {
+        [key: string]: User;
+    });
+    generateToken: () => string;
     receiveSessionData: (data: {
         [key: string]: any;
     }) => {};
+    setToken: (userId: any, token: any, remote?: any) => void;
 }

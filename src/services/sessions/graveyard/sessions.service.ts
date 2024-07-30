@@ -4,7 +4,7 @@ import { stringifyFast } from "graphscript-core/index";
 import { Service, ServiceOptions } from "graphscript-core/index";
 import { loaders } from "graphscript-core/index";
 
-import { User } from "../router/Router";
+import { User } from "../../router/Router";
 
 /**
  * Sessions are a way to run a loop that monitors data structures to know procedurally when and what to update
