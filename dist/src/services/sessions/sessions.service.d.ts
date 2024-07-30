@@ -18,6 +18,7 @@ export declare class SessionService extends Service {
     });
     setSessionToken: (userId: any, token: any, remote?: any) => void;
     generateSessionToken: () => string;
+    messageRemoteSession: (userId: any, token: any, route: any, ...args: any[]) => void;
     receiveSessionData: (data: {
         [key: string]: any;
     }) => {};

@@ -9,7 +9,11 @@ export class SessionService extends Service {
     useTokens = true;
     sessionManager:SessionManager;
     sessionData:{[key:string]:any} = {};
-    constructor(options:ServiceOptions, globalPollInterval:number, users?:{[key:string]:User}) {
+    constructor(
+        options:ServiceOptions, 
+        globalPollInterval:number, 
+        users?:{[key:string]:User}
+    ) {
         super(options);
         if(users) this.users = users;
         this.sessionManager = new SessionManager(
@@ -58,6 +62,15 @@ export class SessionService extends Service {
         return `${Math.floor(Math.random()*1000000000000000)}`;
     }
 
+    //remote session communication via User conventions 
+    messageRemoteSession = (userId:string, token:string, route:string, ...args:any[]) => {
+        let user = this.users[userId];
+        if(route in this.sessionManager) {
+            user.send({route, args:[userId, token, ...args]})
+        } else user.send({route, args});
+    }
+
+    //subscribe to this
     receiveSessionData = (data:{[key:string]:any}) => {
         let updatedSessions = {};
         for(const key in data) {
