@@ -346,7 +346,7 @@ export class CanvasWithControls extends HTMLElement {
     }
 
     connectedCallback() {
-        console.log((this.shadowRoot as any));
+        //console.log((this.shadowRoot as any));
         (this.shadowRoot as any).innerHTML = `
         <style>
             ${css}
@@ -371,7 +371,7 @@ export class CanvasWithControls extends HTMLElement {
             this.translateY = action.translateY;
             this.scale = action.scale;
             this.canvas.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.scale})`;
-            console.log(action.ct);
+            //console.log(action.ct);
             if (action.penMode === 'line') {
                 if (action.isDrawing === false) {
                     this.lastX = undefined;

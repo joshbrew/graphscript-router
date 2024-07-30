@@ -6,7 +6,7 @@
   "types": "./dist/index.d.ts",
   "type": "module",
   "scripts": {
-    "start": "tinybuild",
+    "start": "tinybuild && node server.js",
     "build": "tinybuild build",
     "serve": "tinybuild serve",
     "init": "node tinybuild/init.js",
@@ -26,8 +26,9 @@
   ],
   "author": "",
   "license": "",
-  "dependencies": {},
-  "devDependencies": {},
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
   "nodemonConfig": {
     "env": {
       "NODEMON": true
