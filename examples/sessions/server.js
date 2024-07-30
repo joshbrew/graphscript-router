@@ -5,6 +5,8 @@ import * as path from 'path';
 import { WebSocketServer } from 'ws';
 import { SessionManager } from './dist/esm/src/services/sessions/sessions.js';
 
+const sessionPolling = 10;
+
 // Server configuration
 const serverConfig = {
   protocol: 'http',
@@ -98,18 +100,20 @@ function startServer(cfg) {
   //   });
   // })
 
-  const sessionManager = new SessionManager(5000, (aggregatedBuffers, sessions) => {
+  const sessionManager = new SessionManager(
+    sessionPolling, 
+    (aggregatedBuffers, sessions) => {
       // This function will handle the aggregated updates from the session manager
-      console.log('Aggregated Buffer:', aggregatedBuffers);
-      console.log('Sessions Updated:', sessions);
+      //console.log('Aggregated Buffer:', aggregatedBuffers);
+      //console.log('Sessions Updated:', sessions);
 
       const splitUpdates = sessionManager.splitUpdatesByUser(aggregatedBuffers);
-      console.log('Split Updates by User:', splitUpdates);
+      //console.log('Split Updates by User:', splitUpdates);
 
       // Send split updates to all connected clients
       wss.clients.forEach(client => {
           if (client.readyState === 1) {
-            console.log('sending update')
+            //console.log('sending update')
               client.send(JSON.stringify({ route: 'update', data: splitUpdates }));
           }
       });
@@ -120,7 +124,7 @@ function startServer(cfg) {
     ws.on('message', (message) => {
         try {
             const { route, args } = JSON.parse(message);
-            console.log('Received message:', route, args);
+            //console.log('Received message:', route, args);
 
             switch (route) {
                 case 'addUser':

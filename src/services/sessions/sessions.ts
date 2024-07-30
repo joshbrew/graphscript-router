@@ -145,8 +145,9 @@ export class DelayBuffer {
     }
   
     set buffer(inputs: { [key: string]: any }) {
-      for (const key in this._rules) {
+      for (const key in inputs) {
         const rule = this._rules[key];
+        if(!rule) continue;
         const inputValue = inputs[key];
   
         if (rule === 'state' || rule === true) {
@@ -168,7 +169,8 @@ export class DelayBuffer {
     get buffer() {
       const currentBuffer: { [key: string]: any } = {};
       for (const key in this._buffer) {
-        if (this._buffer[key]._raw) {
+        if(this._buffer[key] === undefined) continue;
+        if (this._buffer[key]?._raw) {
           currentBuffer[key] = this._buffer[key].buffer; 
           this._buffer[key].clear();;
         } else {

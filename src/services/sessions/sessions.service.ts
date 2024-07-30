@@ -31,8 +31,8 @@ export class SessionService extends Service {
         //TODO: INTEGRATE USER TOKENS TO WRAP SESSION MANAGER CALLS AS CUSTOM ROUTES INSTEAD
         //e.g. for(const key in this.sessionManager) { 
         //  let callback = (token, ...args) => {
-        //   //verify token, then pass user messages normally to the session manager callbacks  
-        //}  
+        //      //verify token, then pass user messages normally to the session manager callbacks  
+        //  }  
         //}
     }
 
