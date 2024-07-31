@@ -148,10 +148,8 @@ function testSessionService() {
   document.body.appendChild(drawelem1);
   document.body.appendChild(drawelem2);
 
+
   const bufferRules = {  // delayBufferRules
-    // curState: 'state',
-    // inputs: 'inpbuf',
-    // inpHistory: { type: 'circbuf', length: 100 },
     detail: 'inpbuf',
     detail2: 'inpbuf'
   } as DelayedGetterRules;
@@ -159,7 +157,6 @@ function testSessionService() {
   const pollPeriod = 100;
 
   const createUser1 = () => {
-
     return new Promise((res) => {
       const ws = new WebSocket("http://localhost:8080/");
 
@@ -173,33 +170,22 @@ function testSessionService() {
           sessionsUpdated,
           user
         ) => {
-          //need to handle updates locally, if unspecified it will default to the remote .send call defined on a user slot (so server can repeat updates back to users via a connection)
-          //console.log("sending update", userUpdate, 'for user', user._id);
-          ws.send(JSON.stringify({
-            route: 'updateSessions', //should buffer session updates on the backend
-            args: [user._id, user.token, userUpdate, user._id, { session1: 'secret' }]
-          }))
+          sessions1.messageRemoteSession(
+            user._id as string, 
+            'updateSessions',
+            userUpdate, user._id, user.token, { session1: 'secret' }
+          );
         },
         {
-          [userId]: { //define a user, when using Router.addUser it will generate handlers for us if we provide connection info
-            send: (data) => { //define this to aggregate data for the user to the backend via the send handler
-              if (typeof data === 'object') { //todo: automate this, might be useful in general as a convention
-                //automatically add userId and token that the session manager expects if the route is on the sessionManager
-                if (data.route && typeof sessions1.sessionManager[data.route] === 'function') {
-                  if ('args' in data) { //modify sessionManager calls to lead args with the required user id and token (todo: build it in)
-                    if (Array.isArray(data.args) && data.args[1] !== sessions1.users[userId].token) {
-                      data.args = [userId, sessions1.users[userId].token, ...data.args];
-                    }
-                    else[userId, sessions1.users[userId].token, data.args];
-                  } else data.args = [userId, sessions1.user[userId].token];
-                }
-              }
+          [userId]: {
+            send: (data) => {
               if (typeof data !== "string")
                 data = JSON.stringify(data);
               ws.send(data);
             }
           }
-        }
+        },
+        false
       );
 
       drawelem1.subscribeDrawHandler((detail) => {
@@ -207,7 +193,6 @@ function testSessionService() {
       });
 
       sessions1.subscribe('receiveSessionData', (sessionData: any) => {
-        //console.log('received', sessionData);
         if (sessionData.session1?.detail)
           drawelem2.replayActions(sessionData.session1.detail);
       });
@@ -215,62 +200,61 @@ function testSessionService() {
       ws.onmessage = (ev) => {
         if (ev.data) {
           let data = JSON.parse(ev.data);
-          //console.log(data);
           if (data?.route) {
-            sessions1.receive(data); //receive update objects from the session service
+            sessions1.receive(data);
           }
         }
       }
 
       ws.onopen = (ev) => {
-        //set up the user socket connections 
-        sessions1.sessionManager.startPolling();
+        sessions1.startPolling();
 
         const t = sessions1.generateSessionToken(userId);
-        sessions1.setSessionToken(userId, t, true); //this also establishes the user's id on the server
+        sessions1.setSessionToken(userId, t, true);
 
-        sessions1.sessionManager.createSession( //local session
+        sessions1.sessionManager.createSession(
           'session1',
           userId,
+          t,
           bufferRules,
-          //{ password:'secret' } // sessionRules
-        )
+        );
+
 
         sessions1.messageRemoteSession(
-          userId, t,
+          userId,
           'startPolling'
-        )
+        );
 
         sessions1.messageRemoteSession(
-          userId, t,  //user validation (so we can't spoof)
+          userId,
           'createSession',
           'session1',
           userId,
+          t,
           bufferRules,
-          { password: 'secret' } // sessionRules
+          { password: 'secret' }
         );
 
         sessions1.messageRemoteSession(
-          userId, t,  //user validation (so we can't spoof)
-          'addUserToSession', 'session1', userId, 'secret' //SessionManager.addUserToSession call
+          userId,
+          'addUserToSession',
+          'session1',
+          userId,
+          t,
+          'secret'
         );
+
 
         res(true);
       }
-
-
-
     });
-
   }
 
 
   const createUser2 = () => {
     return new Promise((res) => {
-      //2nd user, bidirectional communications 
+      // 2nd user, bidirectional communications 
       const ws2 = new WebSocket("http://localhost:8080/");
-
-
       const userId2 = 'user2';
 
       let sessions2 = new SessionService(
@@ -281,27 +265,11 @@ function testSessionService() {
           sessionsUpdated,
           user
         ) => {
-          //need to handle updates locally, if unspecified it will default to the remote .send call defined on a user slot (so server can repeat updates back to users via a connection)
-          console.log("sending update", userUpdate, 'for user', user._id);
-          ws2.send(JSON.stringify({
-            route: 'updateSessions', //should buffer session updates on the backend
-            args: [user._id, user.token, userUpdate, user._id, { session1: 'secret' }]
-          }))
+          sessions2.messageRemoteSession(user._id as string, 'updateSessions', userUpdate, user._id, user.token, { session1: 'secret' });
         },
         {
-          [userId2]: { //define a user, when using Router.addUser it will generate handlers for us if we provide connection info
-            send: (data) => { //define this to aggregate data for the user to the backend via the send handler
-              if (typeof data === 'object') { //todo: automate this, might be useful in general as a convention
-                //automatically add userId and token that the session manager expects if the route is on the sessionManager
-                if (data.route && typeof sessions2.sessionManager[data.route] === 'function') {
-                  if ('args' in data) { //modify sessionManager calls to lead args with the required user id and token (todo: build it in)
-                    if (Array.isArray(data.args) && data.args[1] !== sessions2.users[userId2].token) {
-                      data.args = [userId2, sessions2.users[userId2].token, ...data.args];
-                    }
-                    else[userId2, sessions2.users[userId2].token, data.args];
-                  } else data.args = [userId2, sessions2.user[userId2].token];
-                }
-              }
+          [userId2]: {
+            send: (data) => {
               if (typeof data !== "string")
                 data = JSON.stringify(data);
               ws2.send(data);
@@ -313,9 +281,8 @@ function testSessionService() {
       ws2.onmessage = (ev) => {
         if (ev.data) {
           let data = JSON.parse(ev.data);
-          //console.log(data);
           if (data?.route) {
-            sessions2.receive(data); //receive update objects from the session service
+            sessions2.receive(data);
           }
         }
       }
@@ -325,57 +292,35 @@ function testSessionService() {
       });
 
       sessions2.subscribe('receiveSessionData', (sessionData: any) => {
-        //console.log('received', sessionData);
         if (sessionData.session1?.detail2)
           drawelem1.replayActions(sessionData.session1.detail2);
       });
 
       ws2.onopen = (ev) => {
-        //set up the user socket connections 
-        sessions2.sessionManager.startPolling();
+        sessions2.startPolling();
 
         const t = sessions2.generateSessionToken(userId2);
-        sessions2.setSessionToken(userId2, t, true); //this also establishes the user's id on the server
-
-
-        sessions2.sessionManager.createSession( //local session
-          'session1',
-          userId2,
-          bufferRules,
-          //{ password:'secret' } // sessionRules
-        )
-
-        // sessions1.messageRemoteSession(
-        //   userId2, t,
-        //   'startPolling'
-        // )
-
-        // sessions2.messageRemoteSession(
-        //   userId2, t,  //user validation (so we can't spoof)
-        //   'createSession',
-        //   'session1',
-        //   userId2,
-        //   bufferRules,
-        //   { password: 'secret' } // sessionRules
-        // );
+        sessions2.setSessionToken(userId2, t, true);
 
         sessions2.messageRemoteSession(
-          userId2, t,  //user validation (so we can't spoof)
-          'addUserToSession', 'session1', userId2, 'secret' //SessionManager.addUserToSession call
+          userId2,
+          'addUserToSession',
+          'session1',
+          userId2,
+          t,
+          'secret'
         );
 
+        res(true);
       }
-
     });
-
-
   }
 
 
   createUser1()
-  .then(() => { //will degrade performance to run two websockets sending/receiving at high rate unless you use web workers instead
-    createUser2();
-  })
+    .then(() => { //will degrade performance to run two websockets sending/receiving at high rate unless you use web workers instead
+      createUser2();
+    })
 
 }
 

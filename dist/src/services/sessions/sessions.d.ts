@@ -19,6 +19,8 @@ export declare class SessionManager {
     private sessions;
     private delayBufferManager;
     private globalPollInterval;
+    private tokens;
+    private useTokens;
     prevState: {
         [sessionId: string]: {
             [updatedProp: string]: any;
@@ -33,10 +35,10 @@ export declare class SessionManager {
         [key: string]: any;
     }, sessionsUpdated: {
         [sessionId: string]: Session;
-    }) => void);
-    createSession: (sessionId: string, creatorId: string, delayBufferRules: DelayedGetterRules, sessionRules?: Partial<SessionRules>) => Error;
-    deleteSession: (sessionId: string, adminId: string) => Error;
-    getSessionInfo: (sessionId: string) => Error | {
+    }) => void, useTokens?: boolean);
+    createSession: (sessionId: string, creatorId: string, creatorToken: string, delayBufferRules: DelayedGetterRules, sessionRules?: Partial<SessionRules>) => Error;
+    deleteSession: (sessionId: string, adminId: string, adminToken: string) => Error;
+    getSessionInfo: (sessionId: string, userId: string, userToken: string) => Error | {
         _id: string;
         users: string[];
         dbrules: DelayedGetterRules;
@@ -46,18 +48,18 @@ export declare class SessionManager {
         [sessionId: string]: {
             [key: string]: any;
         };
-    }, userId?: string, passwords?: {
+    }, userId?: string, userToken?: string, passwords?: {
         [key: string]: string;
-    }, admin?: string) => void;
+    }, adminId?: string, adminToken?: string) => void;
     updateBuffer: (sessionId: string, updates: {
         [key: string]: any;
-    }, userId?: string, password?: string, admin?: string) => void;
-    addUserToSession: (sessionId: string, userId: string, password?: string, admin?: string, dbrules?: DelayedGetterRules) => Error;
-    removeUserFromSession: (sessionId: string, userId: string, adminId: string) => Error;
-    setAdmin: (sessionId: string, adminId: string, userId: string) => Error;
-    removeAdmin: (sessionId: string, adminId: string, userId: string) => Error;
-    banUser: (sessionId: string, adminId: string, userId: string) => Error;
-    unbanUser: (sessionId: string, adminId: string, userId: string) => Error;
+    }, userId?: string, userToken?: string, password?: string, adminId?: string, adminToken?: string) => void;
+    addUserToSession: (sessionId: string, userId: string, userToken: string, password?: string, dbrules?: DelayedGetterRules, adminId?: string, adminToken?: string) => Error;
+    removeUserFromSession: (sessionId: string, userId: string, adminId: string, adminToken: string) => Error;
+    setAdmin: (sessionId: string, adminId: string, adminToken: string, userId: string) => Error;
+    removeAdmin: (sessionId: string, adminId: string, adminToken: string, userId: string) => Error;
+    banUser: (sessionId: string, adminId: string, adminToken: string, userId: string) => Error;
+    unbanUser: (sessionId: string, adminId: string, adminToken: string, userId: string) => Error;
     splitUpdatesByUser: (aggregatedBuffers: {
         [key: string]: any;
     }) => {
@@ -67,5 +69,7 @@ export declare class SessionManager {
     };
     startPolling: () => void;
     stopPolling: () => void;
+    setSessionToken: (userId: string, token: string) => void;
+    generateSessionToken: (userId?: string) => string;
 }
 export {};

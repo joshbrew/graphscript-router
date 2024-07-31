@@ -5,10 +5,6 @@ export declare class SessionService extends Service {
     users: {
         [key: string]: Partial<User>;
     };
-    tokens: {
-        [key: string]: string;
-    };
-    useTokens: boolean;
     sessionManager: SessionManager;
     sessionData: {
         [key: string]: any;
@@ -27,16 +23,18 @@ export declare class SessionService extends Service {
         [sessionId: string]: any;
     }, user: Partial<User>) => void, users?: {
         [key: string]: Partial<User>;
-    });
+    }, useTokens?: boolean);
     get prevState(): {
         [sessionId: string]: {
             [updatedProp: string]: any;
         };
     };
-    setSessionToken: (userId: any, token: any, remote?: any) => void;
-    generateSessionToken: (userId?: any) => string;
-    messageRemoteSession: (userId: string, token: string, route: string, ...args: any[]) => void;
+    setSessionToken: (userId: string, token: string, remote?: boolean) => void;
+    generateSessionToken: (userId?: string) => string;
+    messageRemoteSession: (userId: string, route: string, ...args: any[]) => void;
     receiveSessionData: (data: {
         [key: string]: any;
     }, userId: string) => {};
+    startPolling: () => void;
+    stopPolling: () => void;
 }

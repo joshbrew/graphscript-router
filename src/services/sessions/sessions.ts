@@ -16,11 +16,12 @@ interface Session {
 
 
 
-//todo add user tokens so we can verify requests
 export class SessionManager {
   private sessions: { [sessionId: string]: Session } = {};
   private delayBufferManager: DelayBufferManager;
   private globalPollInterval: number = 1000;
+  private tokens: { [userId: string]: string } = {};
+  private useTokens: boolean = true; // Add useTokens boolean
   public prevState: { [sessionId: string]: { [updatedProp: string]: any } }
 
   public onupdate?: (
@@ -30,10 +31,12 @@ export class SessionManager {
 
   constructor(
     globalPollInterval: number,
-    onupdate?: (aggregatedBuffer: { [key: string]: any }, sessionsUpdated: { [sessionId: string]: Session }) => void
+    onupdate?: (aggregatedBuffer: { [key: string]: any }, sessionsUpdated: { [sessionId: string]: Session }) => void,
+    useTokens?: boolean // Add useTokens as a constructor parameter
   ) {
     if (globalPollInterval) this.globalPollInterval = globalPollInterval;
     if (onupdate) this.onupdate = onupdate;
+    if (useTokens !== undefined) this.useTokens = useTokens; // Initialize useTokens
     this.delayBufferManager = new DelayBufferManager(this.globalPollInterval);
     this.delayBufferManager.onupdate = (aggregateBuffers) => {
       if (this.onupdate) {
@@ -53,12 +56,16 @@ export class SessionManager {
   createSession = (
     sessionId: string,
     creatorId: string,
+    creatorToken: string,
     delayBufferRules: DelayedGetterRules,
     sessionRules?: Partial<SessionRules>
   ) => {
-
     if (this.sessions[sessionId]) {
       return new Error(`Session with ID ${sessionId} already exists`);
+    }
+
+    if (this.useTokens && (!this.tokens[creatorId] || this.tokens[creatorId] !== creatorToken)) {
+      return new Error(`Invalid token for user ${creatorId}`);
     }
 
     this.delayBufferManager.createBuffer(sessionId, delayBufferRules);
@@ -77,25 +84,29 @@ export class SessionManager {
       db: this.delayBufferManager.get(sessionId) as DelayBuffer
     };
 
-    this.addUserToSession(sessionId, creatorId, sessionRules?.password);
+    this.addUserToSession(sessionId, creatorId, creatorToken, sessionRules?.password);
   }
 
-  deleteSession = (sessionId: string, adminId: string) => {
+  deleteSession = (sessionId: string, adminId: string, adminToken: string) => {
     const session = this.sessions[sessionId];
     if (!session) {
       return new Error(`Session with ID ${sessionId} does not exist`);
     }
 
-    if (this.checkAdmin(sessionId, adminId) || Object.keys(session.rules.adminUsers).length === 0 || Object.keys(session.users).length === 0) {
+    if (this.checkAdmin(sessionId, adminId, adminToken) || Object.keys(session.rules.adminUsers).length === 0 || Object.keys(session.users).length === 0) {
       this.delayBufferManager.deleteBuffer(sessionId);
       delete this.sessions[sessionId];
     }
   }
 
-  getSessionInfo = (sessionId: string) => {
+  getSessionInfo = (sessionId: string, userId: string, userToken: string) => {
     const session = this.sessions[sessionId];
     if (!session) {
       return new Error(`Session with ID ${sessionId} does not exist`);
+    }
+
+    if (this.useTokens && (!this.tokens[userId] || this.tokens[userId] !== userToken)) {
+      return new Error(`Invalid token for user ${userId}`);
     }
 
     const dbrules = this.delayBufferManager.get(sessionId)?._rules;
@@ -107,10 +118,10 @@ export class SessionManager {
     };
   }
 
-  private checkAdmin(sessionId: string, userId: string) {
+  private checkAdmin(sessionId: string, userId: string, adminToken: string) {
     const session = this.sessions[sessionId];
-    if (!session.rules.adminUsers[userId]) {
-      console.error(`User ${userId} does not have admin privileges`);
+    if (this.useTokens && (!session.rules.adminUsers[userId] || this.tokens[userId] !== adminToken)) {
+      console.error(`User ${userId} does not have admin privileges or invalid token`);
       return false;
     }
     return true;
@@ -119,11 +130,13 @@ export class SessionManager {
   updateSessions = (
     updates: { [sessionId: string]: { [key: string]: any }; },
     userId?: string,
+    userToken?: string,
     passwords?: { [key: string]: string },
-    admin?: string
+    adminId?: string,
+    adminToken?: string
   ) => {
     for (const key in updates) {
-      this.updateBuffer(key, updates[key], userId, passwords?.[key], admin);
+      this.updateBuffer(key, updates[key], userId, userToken, passwords?.[key], adminId, adminToken);
     }
   }
 
@@ -131,15 +144,16 @@ export class SessionManager {
     sessionId: string,
     updates: { [key: string]: any; },
     userId?: string,
+    userToken?: string,
     password?: string,
-    admin?: string
+    adminId?: string,
+    adminToken?: string
   ) => {
     let session = this.sessions[sessionId];
-    //console.log(session);
     if (
       session && (
-        (userId && session.users[userId]) ||
-        (admin && session.rules.adminUsers[admin]) ||
+        (userId && session.users[userId] && (!this.useTokens || this.tokens[userId] === userToken)) ||
+        (adminId && this.checkAdmin(sessionId, adminId, adminToken)) ||
         (session.rules.password && session.rules.password === password)
       )
     ) {
@@ -150,21 +164,27 @@ export class SessionManager {
   addUserToSession = (
     sessionId: string,
     userId: string,
+    userToken: string,
     password?: string,
-    admin?: string,
-    dbrules?: DelayedGetterRules // e.g. add specific keys that the user will be updating
+    dbrules?: DelayedGetterRules, // e.g. add specific keys that the user will be updating
+    adminId?: string,
+    adminToken?: string
   ) => {
     const session = this.sessions[sessionId];
     if (!session) {
       return new Error(`Session with ID ${sessionId} does not exist`);
     }
 
-    if (session.rules.password && session.rules.password !== password || (admin && session.rules.adminUsers[admin])) {
-      return new Error(`Password required`);
+    if (session.rules.password && session.rules.password !== password || (adminToken && !this.checkAdmin(sessionId, adminId, adminToken))) {
+      return new Error(`Password required or invalid admin token`);
     }
 
     if (session.rules.bannedUsers && session.rules.bannedUsers[userId]) {
       return new Error(`User ${userId} is banned from this session`);
+    }
+
+    if (this.useTokens && (!this.tokens[userId] || this.tokens[userId] !== userToken)) {
+      return new Error(`Invalid token for user ${userId}`);
     }
 
     session.users[userId] = true;
@@ -173,58 +193,58 @@ export class SessionManager {
     }
   }
 
-  removeUserFromSession = (sessionId: string, userId: string, adminId: string) => {
+  removeUserFromSession = (sessionId: string, userId: string, adminId: string, adminToken: string) => {
     const session = this.sessions[sessionId];
     if (!session) {
       return new Error(`Session with ID ${sessionId} does not exist`);
     }
 
-    if (session.users[userId] || this.checkAdmin(sessionId, adminId) || Object.keys(session.rules.adminUsers).length === 0) {
+    if (session.users[userId] && this.checkAdmin(sessionId, adminId, adminToken)) {
       delete session.users[userId];
     }
   }
 
-  setAdmin = (sessionId: string, adminId: string, userId: string) => {
+  setAdmin = (sessionId: string, adminId: string, adminToken: string, userId: string) => {
     const session = this.sessions[sessionId];
     if (!session) {
       return new Error(`Session with ID ${sessionId} does not exist`);
     }
 
-    if (this.checkAdmin(sessionId, adminId)) {
+    if (this.checkAdmin(sessionId, adminId, adminToken)) {
       session.rules.adminUsers[userId] = true;
     }
   }
 
-  removeAdmin = (sessionId: string, adminId: string, userId: string) => {
+  removeAdmin = (sessionId: string, adminId: string, adminToken: string, userId: string) => {
     const session = this.sessions[sessionId];
     if (!session) {
       return new Error(`Session with ID ${sessionId} does not exist`);
     }
 
-    if (Object.keys(session.rules.adminUsers).length > 1 && this.checkAdmin(sessionId, adminId)) {
+    if (Object.keys(session.rules.adminUsers).length > 1 && this.checkAdmin(sessionId, adminId, adminToken)) {
       delete session.rules.adminUsers[userId];
     }
   }
 
-  banUser = (sessionId: string, adminId: string, userId: string) => {
+  banUser = (sessionId: string, adminId: string, adminToken: string, userId: string) => {
     const session = this.sessions[sessionId];
     if (!session) {
       return new Error(`Session with ID ${sessionId} does not exist`);
     }
 
-    if (this.checkAdmin(sessionId, adminId)) {
+    if (this.checkAdmin(sessionId, adminId, adminToken)) {
       session.rules.bannedUsers[userId] = true;
-      this.removeUserFromSession(sessionId, userId, adminId);
+      this.removeUserFromSession(sessionId, userId, adminId, adminToken);
     }
   }
 
-  unbanUser = (sessionId: string, adminId: string, userId: string) => {
+  unbanUser = (sessionId: string, adminId: string, adminToken: string, userId: string) => {
     const session = this.sessions[sessionId];
     if (!session) {
       return new Error(`Session with ID ${sessionId} does not exist`);
     }
 
-    if (this.checkAdmin(sessionId, adminId)) {
+    if (this.checkAdmin(sessionId, adminId, adminToken)) {
       delete session.rules.bannedUsers[userId];
     }
   }
@@ -257,5 +277,16 @@ export class SessionManager {
   stopPolling = () => {
     this.delayBufferManager.stopPolling();
   }
-}
 
+  setSessionToken = (userId: string, token: string) => {
+    this.tokens[userId] = token;
+  }
+
+  generateSessionToken = (userId?: string) => {
+    const token = `${Math.floor(Math.random() * 1000000000000000)}`;
+    if (userId) {
+      this.tokens[userId] = token;
+    }
+    return token;
+  }
+}

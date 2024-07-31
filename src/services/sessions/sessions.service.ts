@@ -3,13 +3,11 @@ import { User } from "../router/Router";
 import { SessionManager } from "./sessions";
 
 
-export class SessionService extends Service {
 
-    users: { [key: string]: Partial<User> } = {}; //if we add this as a service to the router it should set users automatically
-    tokens: { [key: string]: string } = {}; //user specific tokens
-    useTokens = true;
+export class SessionService extends Service {
+    users: { [key: string]: Partial<User> } = {}; // if we add this as a service to the router it should set users automatically
     sessionManager: SessionManager;
-    sessionData: { [key: string]: any } = {}; //current state from the session
+    sessionData: { [key: string]: any } = {}; // current state from the session
     onlocalupdate?: (
         userUpdate: { [sessionId: string]: any },
         sessionsUpdated: { [sessionId: string]: any },
@@ -25,7 +23,8 @@ export class SessionService extends Service {
         options?: ServiceOptions,
         globalPollInterval?: number,
         onlocalupdate?: (userUpdate: { [sessionId: string]: any }, sessionsUpdated: { [sessionId: string]: any }, user: Partial<User>) => void,
-        users?: { [key: string]: Partial<User> }
+        users?: { [key: string]: Partial<User> },
+        useTokens=true
     ) {
         super(options);
         if (users) {
@@ -40,30 +39,24 @@ export class SessionService extends Service {
 
                 for (const uid in split) {
                     if (this.onlocalupdate) this.onlocalupdate(split[uid], sessionsUpdated, this.users[uid]);
-                    else  //default we will use the send handler
+                    else  // default we will use the send handler
                         if (this.users[uid]?.send) {
                             this.users[uid].send({
                                 route: 'receiveSessionData', args: [split[uid], uid]
-                            }); //send session updates to specific users
-                        } //else {
-                    //     for(const key in split[uid]) {
-                    //         delete sessionsUpdated[key].users[uid]; //removed from session if inactive
-                    //     }
-                    // }
+                            }); // send session updates to specific users
+                        }
                 }
-
-            }
+            },
+            useTokens // Assuming we want to use tokens by default
         );
 
         let routes = {};
         const keys = Object.getOwnPropertyNames(this.sessionManager);
         for (const key of keys) {
-            if (typeof this.sessionManager[key] === 'function') {
-                routes[key] = (userId, token, ...args) => { //lead all sessionManager calls with userId and token then supply the normal arguments
-                    ///console.log(key,userId, token, args, this.users)
-                    if (this.users[userId] && (!this.useTokens || (this.tokens[userId] && this.tokens[userId] === token))) {
-                        return this.sessionManager[key](...args); //validate user activity with tokens
-                    } else throw new Error("User needs to be registered with a token");
+            if ((key !== 'setSessionToken' && key !== 'generateSessionToken' && key !== 'startPolling' && key !== 'stopPolling') && typeof this.sessionManager[key] === 'function') {
+                routes[key] = (...args) => {
+                    let res = this.sessionManager[key](...args);
+                    if (res instanceof Error) console.error(res);
                 }
             }
         }
@@ -77,37 +70,34 @@ export class SessionService extends Service {
             return this.sessionManager.prevState;
     }
 
-    //we will need this to verify users on their endpoints
-    setSessionToken = (userId, token, remote?) => {
+    // we will need this to verify users on their endpoints
+    setSessionToken = (userId: string, token: string, remote?: boolean) => {
+        this.sessionManager.setSessionToken(userId, token);
         if (remote && this.users[userId]?.send) {
             const message = { route: 'setSessionToken', args: [userId, token] };
             this.users[userId].send(message);
         } else {
-            if (!this.users[userId]) this.users[userId] = {};
-            this.tokens[userId] = token;
+            if (!this.users[userId]) this.users[userId] = { _id: userId };
             this.users[userId].token = token;
         }
     }
 
-    generateSessionToken = (userId?) => {
-        const t = `${Math.floor(Math.random() * 1000000000000000)}`;
-        if (userId) {
+    generateSessionToken = (userId?: string) => {
+        const token = this.sessionManager.generateSessionToken(userId);
+        if (userId && this.users[userId]) {
             if (!this.users[userId]) this.users[userId] = { _id: userId };
-            this.tokens[userId] = t; //set locally too
-            this.users[userId].token = t;
+            this.users[userId].token = token;
         }
-        return t;
+        return token;
     }
 
-    //remote session communication via User conventions 
-    messageRemoteSession = (userId: string, token: string, route: string, ...args: any[]) => {
+    // remote session communication via User conventions 
+    messageRemoteSession = (userId: string, route: string, ...args: any[]) => {
         let user = this.users[userId];
-        if (typeof this.sessionManager[route] === 'function') {
-            user.send({ route, args: [userId, token, ...args] })
-        } else user.send({ route, args });
+        user.send({ route, args })
     }
 
-    //subscribe to this
+    // subscribe to this
     receiveSessionData = (data: { [key: string]: any }, userId: string) => {
         let updatedSessions = {};
         for (const key in data) {
@@ -121,6 +111,11 @@ export class SessionService extends Service {
         return updatedSessions;
     }
 
+    startPolling = () => {
+        this.sessionManager.startPolling();
+    }
+
+    stopPolling = () => {
+        this.sessionManager.stopPolling();
+    }
 }
-
-
