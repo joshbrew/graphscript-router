@@ -151,8 +151,8 @@ export class SessionManager {
   ) => {
     let session = this.sessions[sessionId];
     if (
-      session && (
-        (userId && session.users[userId] && (!this.useTokens || this.tokens[userId] === userToken)) ||
+      session && (!this.useTokens || 
+        (userId && session.users[userId] && (this.tokens[userId] === userToken)) ||
         (adminId && this.checkAdmin(sessionId, adminId, adminToken)) ||
         (session.rules.password && session.rules.password === password)
       )

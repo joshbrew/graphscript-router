@@ -185,11 +185,11 @@ function testSessionService() {
             }
           }
         },
-        false
+        false //local service doesn't need tokens
       );
 
       drawelem1.subscribeDrawHandler((detail) => {
-        sessions1.sessionManager.updateBuffer('session1', { detail: detail }, userId);
+        sessions1.sessionManager.updateBuffer('session1', { detail: detail });
       });
 
       sessions1.subscribe('receiveSessionData', (sessionData: any) => {
@@ -265,7 +265,10 @@ function testSessionService() {
           sessionsUpdated,
           user
         ) => {
-          sessions2.messageRemoteSession(user._id as string, 'updateSessions', userUpdate, user._id, user.token, { session1: 'secret' });
+          sessions2.messageRemoteSession(
+            user._id as string, 
+            'updateSessions', 
+            userUpdate, user._id, user.token, { session1: 'secret' });
         },
         {
           [userId2]: {
@@ -275,7 +278,8 @@ function testSessionService() {
               ws2.send(data);
             }
           }
-        }
+        },
+        false
       );
 
       ws2.onmessage = (ev) => {
@@ -288,7 +292,7 @@ function testSessionService() {
       }
 
       drawelem2.subscribeDrawHandler((detail2) => {
-        sessions2.sessionManager.updateBuffer('session1', { detail2: detail2 }, userId2);
+        sessions2.sessionManager.updateBuffer('session1', { detail2: detail2 });
       });
 
       sessions2.subscribe('receiveSessionData', (sessionData: any) => {
@@ -301,6 +305,13 @@ function testSessionService() {
 
         const t = sessions2.generateSessionToken(userId2);
         sessions2.setSessionToken(userId2, t, true);
+
+        sessions2.sessionManager.createSession(
+          'session1',
+          userId2,
+          t,
+          bufferRules,
+        );
 
         sessions2.messageRemoteSession(
           userId2,
