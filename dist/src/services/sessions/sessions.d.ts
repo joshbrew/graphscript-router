@@ -19,6 +19,11 @@ export declare class SessionManager {
     private sessions;
     private delayBufferManager;
     private globalPollInterval;
+    prevState: {
+        [sessionId: string]: {
+            [updatedProp: string]: any;
+        };
+    };
     onupdate?: (aggregatedBuffer: {
         [key: string]: any;
     }, sessionsUpdated: {
@@ -29,31 +34,38 @@ export declare class SessionManager {
     }, sessionsUpdated: {
         [sessionId: string]: Session;
     }) => void);
-    createSession(sessionId: string, creatorId: string, delayBufferRules: DelayedGetterRules, sessionRules?: Partial<SessionRules>): void;
-    deleteSession(sessionId: string, adminId: string): void;
-    getSessionInfo(sessionId: string): {
+    createSession: (sessionId: string, creatorId: string, delayBufferRules: DelayedGetterRules, sessionRules?: Partial<SessionRules>) => Error;
+    deleteSession: (sessionId: string, adminId: string) => Error;
+    getSessionInfo: (sessionId: string) => Error | {
         _id: string;
         users: string[];
         dbrules: DelayedGetterRules;
     };
     private checkAdmin;
+    updateSessions: (updates: {
+        [sessionId: string]: {
+            [key: string]: any;
+        };
+    }, userId?: string, passwords?: {
+        [key: string]: string;
+    }, admin?: string) => void;
     updateBuffer: (sessionId: string, updates: {
         [key: string]: any;
     }, userId?: string, password?: string, admin?: string) => void;
-    addUserToSession(sessionId: string, userId: string, password?: string, admin?: string, dbrules?: DelayedGetterRules): void;
-    removeUserFromSession(sessionId: string, userId: string, adminId: string): void;
-    setAdmin(sessionId: string, adminId: string, userId: string): void;
-    removeAdmin(sessionId: string, adminId: string, userId: string): void;
-    banUser(sessionId: string, adminId: string, userId: string): void;
-    unbanUser(sessionId: string, adminId: string, userId: string): void;
-    splitUpdatesByUser(aggregatedBuffers: {
+    addUserToSession: (sessionId: string, userId: string, password?: string, admin?: string, dbrules?: DelayedGetterRules) => Error;
+    removeUserFromSession: (sessionId: string, userId: string, adminId: string) => Error;
+    setAdmin: (sessionId: string, adminId: string, userId: string) => Error;
+    removeAdmin: (sessionId: string, adminId: string, userId: string) => Error;
+    banUser: (sessionId: string, adminId: string, userId: string) => Error;
+    unbanUser: (sessionId: string, adminId: string, userId: string) => Error;
+    splitUpdatesByUser: (aggregatedBuffers: {
         [key: string]: any;
-    }): {
+    }) => {
         [userId: string]: {
             [sessionId: string]: any;
         };
     };
-    startPolling(): void;
-    stopPolling(): void;
+    startPolling: () => void;
+    stopPolling: () => void;
 }
 export {};

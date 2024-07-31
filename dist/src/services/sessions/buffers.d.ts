@@ -30,12 +30,16 @@ export type DelayedGetterRules = {
 };
 export declare class DelayBuffer {
     private _buffer;
+    bufferHasData?: boolean;
     _rules: DelayedGetterRules;
     private _pollInterval?;
     private _pollTimeout?;
     onupdate?: (buffer: {
         [key: string]: any;
     }) => void;
+    prevState: {
+        [updated: string]: any;
+    };
     constructor(rules: DelayedGetterRules, poll?: number);
     setRules(rules: DelayedGetterRules): void;
     clearRules(rules: string[]): void;
@@ -46,7 +50,9 @@ export declare class DelayBuffer {
         [key: string]: any;
     };
     clear(): void;
-    startPolling(): void;
+    startPolling(onupdate?: (buffer: {
+        [key: string]: any;
+    }) => void): void;
     stopPolling(): void;
 }
 export declare class DelayBufferManager {
@@ -54,8 +60,15 @@ export declare class DelayBufferManager {
     private pollInterval;
     private pollTimeout?;
     onupdate?: (aggregatedBuffer: {
-        [key: string]: any;
+        [name: string]: {
+            [updatedProp: string]: any;
+        };
     }) => void;
+    prevState: {
+        [name: string]: {
+            [updatedProp: string]: any;
+        };
+    };
     constructor(pollInterval: number);
     createBuffer(name: string, rules: DelayedGetterRules, individualPollInterval?: number): void;
     deleteBuffer(name: string): void;
@@ -64,6 +77,8 @@ export declare class DelayBufferManager {
         [key: string]: any;
     }): void;
     private aggregateBuffers;
-    startPolling(): void;
+    startPolling(onupdate?: (buffer: {
+        [key: string]: any;
+    }) => void): void;
     stopPolling(): void;
 }

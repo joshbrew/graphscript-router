@@ -3,7 +3,7 @@ import { User } from "../router/Router";
 import { SessionManager } from "./sessions";
 export declare class SessionService extends Service {
     users: {
-        [key: string]: User;
+        [key: string]: Partial<User>;
     };
     tokens: {
         [key: string]: string;
@@ -13,13 +13,30 @@ export declare class SessionService extends Service {
     sessionData: {
         [key: string]: any;
     };
-    constructor(options: ServiceOptions, globalPollInterval: number, users?: {
-        [key: string]: User;
+    onlocalupdate?: (userUpdate: {
+        [sessionId: string]: any;
+    }, sessionsUpdated: {
+        [sessionId: string]: any;
+    }, user: Partial<User>) => void;
+    onremoteupdate?: (userUpdate: {
+        [sessionId: string]: any;
+    }, user: Partial<User>) => void;
+    constructor(options?: ServiceOptions, globalPollInterval?: number, onlocalupdate?: (userUpdate: {
+        [sessionId: string]: any;
+    }, sessionsUpdated: {
+        [sessionId: string]: any;
+    }, user: Partial<User>) => void, users?: {
+        [key: string]: Partial<User>;
     });
+    get prevState(): {
+        [sessionId: string]: {
+            [updatedProp: string]: any;
+        };
+    };
     setSessionToken: (userId: any, token: any, remote?: any) => void;
-    generateSessionToken: () => string;
+    generateSessionToken: (userId?: any) => string;
     messageRemoteSession: (userId: string, token: string, route: string, ...args: any[]) => void;
     receiveSessionData: (data: {
         [key: string]: any;
-    }) => {};
+    }, userId: string) => {};
 }
