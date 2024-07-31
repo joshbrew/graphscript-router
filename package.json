@@ -1,6 +1,6 @@
 {
     "name": "graphscript-router",
-    "version": "0.3.28",
+    "version": "0.3.31",
     "description": "Comprehensive acyclic-graph based application architecture with microservices and networking",
     "main": "dist/index.js",
     "module": "dist/index.esm.js",

@@ -21,7 +21,7 @@ export class SessionManager {
   private delayBufferManager: DelayBufferManager;
   private globalPollInterval: number = 1000;
   private tokens: { [userId: string]: string } = {};
-  private useTokens: boolean = true; // Add useTokens boolean
+  private useTokens: boolean = false; // Add useTokens boolean
   public prevState: { [sessionId: string]: { [updatedProp: string]: any } }
 
   public onupdate?: (
