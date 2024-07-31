@@ -2,13 +2,13 @@ import {
   InputBuffer, CircularBuffer, DelayBuffer, DelayBufferManager, DelayedGetterRules
 } from './buffers'
 
-interface SessionRules {
+export type SessionRules = {
   password?: string;
   bannedUsers: { [userId: string]: boolean };
   adminUsers: { [userId: string]: boolean };
 }
 
-interface Session {
+export type Session = {
   users: { [userId: string]: boolean };
   rules: SessionRules;
   db: DelayBuffer;

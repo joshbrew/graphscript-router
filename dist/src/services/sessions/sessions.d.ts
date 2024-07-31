@@ -1,5 +1,5 @@
 import { DelayBuffer, DelayedGetterRules } from './buffers';
-interface SessionRules {
+export type SessionRules = {
     password?: string;
     bannedUsers: {
         [userId: string]: boolean;
@@ -7,14 +7,14 @@ interface SessionRules {
     adminUsers: {
         [userId: string]: boolean;
     };
-}
-interface Session {
+};
+export type Session = {
     users: {
         [userId: string]: boolean;
     };
     rules: SessionRules;
     db: DelayBuffer;
-}
+};
 export declare class SessionManager {
     private sessions;
     private delayBufferManager;
@@ -72,4 +72,3 @@ export declare class SessionManager {
     setSessionToken: (userId: string, token: string) => void;
     generateSessionToken: (userId?: string) => string;
 }
-export {};

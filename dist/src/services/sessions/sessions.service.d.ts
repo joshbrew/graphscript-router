@@ -1,6 +1,7 @@
 import { Service, ServiceOptions } from "graphscript-core";
 import { User } from "../router/Router";
-import { SessionManager } from "./sessions";
+import { SessionManager, SessionRules } from "./sessions";
+import { DelayedGetterRules } from "./buffers";
 export declare class SessionService extends Service {
     users: {
         [key: string]: Partial<User>;
@@ -35,6 +36,15 @@ export declare class SessionService extends Service {
     receiveSessionData: (data: {
         [key: string]: any;
     }, userId: string) => {};
+    createSession: (sessionId: string, creatorId: string, creatorToken: string, delayBufferRules: DelayedGetterRules, sessionRules?: Partial<SessionRules>) => Error;
+    updateSessions: (updates: {
+        [key: string]: any;
+    }, userId?: string, userToken?: string, passwords?: {
+        [key: string]: string;
+    }, adminId?: string, adminToken?: string) => void;
+    updateBuffer: (sessionId: string, updates: {
+        [key: string]: any;
+    }, userId?: string, userToken?: string, password?: string, adminId?: string, adminToken?: string) => void;
     startPolling: () => void;
     stopPolling: () => void;
 }

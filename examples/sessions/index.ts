@@ -189,7 +189,7 @@ function testSessionService() {
       );
 
       drawelem1.subscribeDrawHandler((detail) => {
-        sessions1.sessionManager.updateBuffer('session1', { detail: detail });
+        sessions1.updateBuffer('session1', { detail: detail });
       });
 
       sessions1.subscribe('receiveSessionData', (sessionData: any) => {
@@ -212,13 +212,12 @@ function testSessionService() {
         const t = sessions1.generateSessionToken(userId);
         sessions1.setSessionToken(userId, t, true);
 
-        sessions1.sessionManager.createSession(
+        sessions1.createSession(
           'session1',
           userId,
           t,
           bufferRules,
         );
-
 
         sessions1.messageRemoteSession(
           userId,
@@ -292,7 +291,7 @@ function testSessionService() {
       }
 
       drawelem2.subscribeDrawHandler((detail2) => {
-        sessions2.sessionManager.updateBuffer('session1', { detail2: detail2 });
+        sessions2.updateBuffer('session1', { detail2: detail2 });
       });
 
       sessions2.subscribe('receiveSessionData', (sessionData: any) => {
@@ -306,7 +305,7 @@ function testSessionService() {
         const t = sessions2.generateSessionToken(userId2);
         sessions2.setSessionToken(userId2, t, true);
 
-        sessions2.sessionManager.createSession(
+        sessions2.createSession(
           'session1',
           userId2,
           t,

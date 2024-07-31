@@ -1,6 +1,7 @@
 import { Service, ServiceOptions } from "graphscript-core";
 import { User } from "../router/Router";
-import { SessionManager } from "./sessions";
+import { SessionManager, SessionRules } from "./sessions";
+import { DelayedGetterRules } from "./buffers";
 
 
 
@@ -53,7 +54,7 @@ export class SessionService extends Service {
         let routes = {};
         const keys = Object.getOwnPropertyNames(this.sessionManager);
         for (const key of keys) {
-            if ((key !== 'setSessionToken' && key !== 'generateSessionToken' && key !== 'startPolling' && key !== 'stopPolling') && typeof this.sessionManager[key] === 'function') {
+            if ((key !== 'createSession' && key !== 'updateSessions' && key !== 'updateBuffer' && key !== 'setSessionToken' && key !== 'generateSessionToken' && key !== 'startPolling' && key !== 'stopPolling') && typeof this.sessionManager[key] === 'function') {
                 routes[key] = (...args) => {
                     let res = this.sessionManager[key](...args);
                     if (res instanceof Error) console.error(res);
@@ -111,11 +112,23 @@ export class SessionService extends Service {
         return updatedSessions;
     }
 
+    createSession = (sessionId: string, creatorId: string, creatorToken: string, delayBufferRules: DelayedGetterRules, sessionRules?: Partial<SessionRules>) => {
+        return this.sessionManager.createSession(sessionId, creatorId, creatorToken, delayBufferRules, sessionRules)
+    }
+
+    updateSessions = (updates: { [key: string]: any; }, userId?: string, userToken?: string, passwords?: {[key:string]:string}, adminId?: string, adminToken?: string) => {
+        return this.sessionManager.updateSessions(updates, userId, userToken, passwords, adminId, adminToken);
+    }
+
+    updateBuffer = (sessionId: string, updates: { [key: string]: any; }, userId?: string, userToken?: string, password?: string, adminId?: string, adminToken?: string) => {
+        return this.sessionManager.updateBuffer(sessionId, updates, userId, userToken, password, adminId, adminToken);
+    }
+
     startPolling = () => {
-        this.sessionManager.startPolling();
+        return this.sessionManager.startPolling();
     }
 
     stopPolling = () => {
-        this.sessionManager.stopPolling();
+        return this.sessionManager.stopPolling();
     }
 }
