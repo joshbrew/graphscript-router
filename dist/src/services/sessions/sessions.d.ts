@@ -36,8 +36,9 @@ export declare class SessionManager {
     }, sessionsUpdated: {
         [sessionId: string]: Session;
     }) => void, useTokens?: boolean);
-    createSession: (sessionId: string, creatorId: string, creatorToken: string, delayBufferRules: DelayedGetterRules, sessionRules?: Partial<SessionRules>) => Error;
+    createSession: (sessionId: string, userId: string, delayBufferRules: DelayedGetterRules, sessionRules?: Partial<SessionRules>, userToken?: string) => Error;
     deleteSession: (sessionId: string, adminId: string, adminToken: string) => Error;
+    clearUserToken: (userId: any) => void;
     getSessionInfo: (sessionId: string, userId: string, userToken: string) => Error | {
         _id: string;
         users: string[];
@@ -54,12 +55,12 @@ export declare class SessionManager {
     updateBuffer: (sessionId: string, updates: {
         [key: string]: any;
     }, userId?: string, userToken?: string, password?: string, adminId?: string, adminToken?: string) => void;
-    addUserToSession: (sessionId: string, userId: string, userToken: string, password?: string, dbrules?: DelayedGetterRules, adminId?: string, adminToken?: string) => Error;
-    removeUserFromSession: (sessionId: string, userId: string, adminId: string, adminToken: string) => Error;
-    setAdmin: (sessionId: string, adminId: string, adminToken: string, userId: string) => Error;
-    removeAdmin: (sessionId: string, adminId: string, adminToken: string, userId: string) => Error;
-    banUser: (sessionId: string, adminId: string, adminToken: string, userId: string) => Error;
-    unbanUser: (sessionId: string, adminId: string, adminToken: string, userId: string) => Error;
+    addUserToSession: (sessionId: string, userId: string, userToken?: string, password?: string, dbrules?: DelayedGetterRules, adminId?: string, adminToken?: string) => Error;
+    removeUserFromSession: (sessionId: string, userId: string, adminId: string, adminToken?: string) => Error;
+    setAdmin: (sessionId: string, userId: string, adminId: string, adminToken?: string) => Error;
+    removeAdmin: (sessionId: string, userId: string, adminId: string, adminToken?: string) => Error;
+    banUser: (sessionId: string, adminId: string, userId: string, adminToken: string) => Error;
+    unbanUser: (sessionId: string, userId: string, adminId: string, adminToken?: string) => Error;
     splitUpdatesByUser: (aggregatedBuffers: {
         [key: string]: any;
     }) => {

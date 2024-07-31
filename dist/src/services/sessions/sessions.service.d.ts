@@ -36,7 +36,7 @@ export declare class SessionService extends Service {
     receiveSessionData: (data: {
         [key: string]: any;
     }, userId: string) => {};
-    createSession: (sessionId: string, creatorId: string, creatorToken: string, delayBufferRules: DelayedGetterRules, sessionRules?: Partial<SessionRules>) => Error;
+    createSession: (sessionId: string, userId: string, delayBufferRules: DelayedGetterRules, sessionRules?: Partial<SessionRules>, userToken?: string) => Error;
     updateSessions: (updates: {
         [key: string]: any;
     }, userId?: string, userToken?: string, passwords?: {

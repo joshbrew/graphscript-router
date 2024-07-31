@@ -55,17 +55,17 @@ export class SessionManager {
 
   createSession = (
     sessionId: string,
-    creatorId: string,
-    creatorToken: string,
+    userId: string,
     delayBufferRules: DelayedGetterRules,
-    sessionRules?: Partial<SessionRules>
+    sessionRules?: Partial<SessionRules>,
+    userToken?: string
   ) => {
     if (this.sessions[sessionId]) {
       return new Error(`Session with ID ${sessionId} already exists`);
     }
 
-    if (this.useTokens && (!this.tokens[creatorId] || this.tokens[creatorId] !== creatorToken)) {
-      return new Error(`Invalid token for user ${creatorId}`);
+    if (this.useTokens && (!this.tokens[userId] || this.tokens[userId] !== userToken)) {
+      return new Error(`Invalid token for user ${userId}`);
     }
 
     this.delayBufferManager.createBuffer(sessionId, delayBufferRules);
@@ -76,7 +76,7 @@ export class SessionManager {
       adminUsers: sessionRules?.adminUsers || {},
     };
 
-    rules.adminUsers[creatorId] = true; // Creator is an admin by default
+    rules.adminUsers[userId] = true; // Creator is an admin by default
 
     this.sessions[sessionId] = {
       users: {},
@@ -84,7 +84,7 @@ export class SessionManager {
       db: this.delayBufferManager.get(sessionId) as DelayBuffer
     };
 
-    this.addUserToSession(sessionId, creatorId, creatorToken, sessionRules?.password);
+    this.addUserToSession(sessionId, userId, userToken, sessionRules?.password);
   }
 
   deleteSession = (sessionId: string, adminId: string, adminToken: string) => {
@@ -97,6 +97,10 @@ export class SessionManager {
       this.delayBufferManager.deleteBuffer(sessionId);
       delete this.sessions[sessionId];
     }
+  }
+
+  clearUserToken = (userId) => {
+    delete this.tokens[userId]; //will prevent user making updates if using tokens
   }
 
   getSessionInfo = (sessionId: string, userId: string, userToken: string) => {
@@ -118,7 +122,7 @@ export class SessionManager {
     };
   }
 
-  private checkAdmin(sessionId: string, userId: string, adminToken: string) {
+  private checkAdmin(sessionId: string, userId: string, adminToken?: string) {
     const session = this.sessions[sessionId];
     if (this.useTokens && (!session.rules.adminUsers[userId] || this.tokens[userId] !== adminToken)) {
       console.error(`User ${userId} does not have admin privileges or invalid token`);
@@ -164,7 +168,7 @@ export class SessionManager {
   addUserToSession = (
     sessionId: string,
     userId: string,
-    userToken: string,
+    userToken?: string,
     password?: string,
     dbrules?: DelayedGetterRules, // e.g. add specific keys that the user will be updating
     adminId?: string,
@@ -193,7 +197,7 @@ export class SessionManager {
     }
   }
 
-  removeUserFromSession = (sessionId: string, userId: string, adminId: string, adminToken: string) => {
+  removeUserFromSession = (sessionId: string, userId: string, adminId: string, adminToken?: string) => {
     const session = this.sessions[sessionId];
     if (!session) {
       return new Error(`Session with ID ${sessionId} does not exist`);
@@ -204,7 +208,7 @@ export class SessionManager {
     }
   }
 
-  setAdmin = (sessionId: string, adminId: string, adminToken: string, userId: string) => {
+  setAdmin = (sessionId: string, userId: string, adminId: string, adminToken?: string) => {
     const session = this.sessions[sessionId];
     if (!session) {
       return new Error(`Session with ID ${sessionId} does not exist`);
@@ -215,7 +219,7 @@ export class SessionManager {
     }
   }
 
-  removeAdmin = (sessionId: string, adminId: string, adminToken: string, userId: string) => {
+  removeAdmin = (sessionId: string, userId: string, adminId: string, adminToken?: string) => {
     const session = this.sessions[sessionId];
     if (!session) {
       return new Error(`Session with ID ${sessionId} does not exist`);
@@ -226,7 +230,7 @@ export class SessionManager {
     }
   }
 
-  banUser = (sessionId: string, adminId: string, adminToken: string, userId: string) => {
+  banUser = (sessionId: string, adminId: string, userId: string, adminToken: string) => {
     const session = this.sessions[sessionId];
     if (!session) {
       return new Error(`Session with ID ${sessionId} does not exist`);
@@ -238,7 +242,7 @@ export class SessionManager {
     }
   }
 
-  unbanUser = (sessionId: string, adminId: string, adminToken: string, userId: string) => {
+  unbanUser = (sessionId: string, userId: string, adminId: string, adminToken?: string) => {
     const session = this.sessions[sessionId];
     if (!session) {
       return new Error(`Session with ID ${sessionId} does not exist`);

@@ -102,36 +102,137 @@ function startServer(cfg) {
 
   const sessionPolling = 10;
 
-  const sessions = new SessionService(
-    undefined,
-    sessionPolling
-  );
-
-  wss.on('connection', (ws) => {
-    console.log("New Connection!");
-    ws.on('message', (message) => {
-      const data = JSON.parse(message);
-      if (data?.route) {
-        //console.log(data.route, data.args);
-        if (data.route === 'setSessionToken') {
-          let userId = data.args[0];
-          sessions.users[userId] = {
-            send: (data) => {
-              if (typeof data !== "string")
-                data = JSON.stringify(data);
-              ws.send(data);
+  const testSessionService = () => {
+    const sessions = new SessionService(
+      undefined,
+      sessionPolling,
+      undefined, undefined, 
+      true
+    );
+  
+    wss.on('connection', (ws) => {
+      console.log("New Connection!");
+      ws.on('message', (message) => {
+        const data = JSON.parse(message);
+        if (data?.route) {
+          //console.log(data.route, data.args);
+          if (data.route === 'setSessionToken') {
+            let userId = data.args[0];
+            sessions.users[userId] = {
+              send: (data) => {
+                if (typeof data !== "string")
+                  data = JSON.stringify(data);
+                ws.send(data);
+              }
             }
           }
+          sessions.receive(data);
         }
-        sessions.receive(data);
-      }
-      //console.log('Received message:', route, args);
+        //console.log('Received message:', route, args);
+      });
+  
+      ws.on('close', () => {
+        // Handle user disconnection if needed
+      });
+    });
+  }
+
+  testSessionService();
+
+  //more basic test, the service helps speed this up
+  const testManagerWS = () => {
+    
+    const sessionManager = new SessionManager(
+      sessionPolling, 
+      (aggregatedBuffers, sessions) => {
+        // This function will handle the aggregated updates from the session manager
+        //console.log('Aggregated Buffer:', aggregatedBuffers);
+        //console.log('Sessions Updated:', sessions);
+
+        const splitUpdates = sessionManager.splitUpdatesByUser(aggregatedBuffers);
+        //console.log('Split Updates by User:', splitUpdates);
+
+        // Send split updates to all connected clients
+        wss.clients.forEach(client => {
+            if (client.readyState === 1) {
+              //console.log('sending update')
+                client.send(JSON.stringify({ route: 'update', data: splitUpdates }));
+            }
+        });
     });
 
-    ws.on('close', () => {
-      // Handle user disconnection if needed
+    wss.on('connection', (ws) => {
+      console.log("New Connection!");
+      ws.on('message', (message) => {
+          try {
+              const { route, args } = JSON.parse(message);
+              //console.log('Received message:', route, args);
+
+              switch (route) {
+                  case 'addUser':
+                      sessionManager.addUserToSession(...args);
+                      ws.send(JSON.stringify({ route: 'addUser', status: 'success' }));
+                      break;
+                  
+                  case 'startPolling':
+                      sessionManager.startPolling();
+                      ws.send(JSON.stringify({ route: 'startPolling', status: 'success' }));
+                      break;
+                  case 'stopPolling':
+                      sessionManager.stopPolling();
+                      ws.send(JSON.stringify({ route: 'stopPolling', status: 'success' }));
+                      break;
+                  case 'createSession':
+                      sessionManager.createSession(...args);
+                      ws.send(JSON.stringify({ route: 'createSession', status: 'success' }));
+                      break;
+                  case 'updateBuffer':
+                      sessionManager.updateBuffer(...args);
+                      //ws.send(JSON.stringify({ route: 'updateBuffer', status: 'success' }));
+                      break;
+                  case 'deleteSession':
+                      sessionManager.deleteSession(...args);
+                      ws.send(JSON.stringify({ route: 'deleteSession', status: 'success' }));
+                      break;
+                  case 'setAdmin':
+                      sessionManager.setAdmin(...args);
+                      ws.send(JSON.stringify({ route: 'setAdmin', status: 'success' }));
+                      break;
+                  case 'removeAdmin':
+                      sessionManager.removeAdmin(...args);
+                      ws.send(JSON.stringify({ route: 'removeAdmin', status: 'success' }));
+                      break;
+                  case 'banUser':
+                      sessionManager.banUser(...args);
+                      ws.send(JSON.stringify({ route: 'banUser', status: 'success' }));
+                      break;
+                  case 'unbanUser':
+                      sessionManager.unbanUser(...args);
+                      ws.send(JSON.stringify({ route: 'unbanUser', status: 'success' }));
+                      break;
+                  case 'getSessionInfo':
+                      const sessionInfo = sessionManager.getSessionInfo(...args);
+                      ws.send(JSON.stringify({ route: 'getSessionInfo', sessionInfo }));
+                      break;
+                  // Add more cases as needed
+                  default:
+                      ws.send(JSON.stringify({ route: 'error', message: 'Unknown route' }));
+                      break;
+              }
+          } catch (error) {
+              console.error('Error handling message:', error);
+              ws.send(JSON.stringify({ route: 'error', message: 'Invalid message format' }));
+          }
+      });
+
+      ws.on('close', () => {
+          // Handle user disconnection if needed
+      });
     });
-  });
+  }
+
+  //testManagerWS();
+
 
   server.listen(cfg.port, cfg.host, () => {
     console.log(`Server running at ${cfg.protocol}://${cfg.host}:${cfg.port}/`);

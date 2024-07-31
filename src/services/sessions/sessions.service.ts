@@ -25,7 +25,7 @@ export class SessionService extends Service {
         globalPollInterval?: number,
         onlocalupdate?: (userUpdate: { [sessionId: string]: any }, sessionsUpdated: { [sessionId: string]: any }, user: Partial<User>) => void,
         users?: { [key: string]: Partial<User> },
-        useTokens=true
+        useTokens=false
     ) {
         super(options);
         if (users) {
@@ -112,8 +112,8 @@ export class SessionService extends Service {
         return updatedSessions;
     }
 
-    createSession = (sessionId: string, creatorId: string, creatorToken: string, delayBufferRules: DelayedGetterRules, sessionRules?: Partial<SessionRules>) => {
-        return this.sessionManager.createSession(sessionId, creatorId, creatorToken, delayBufferRules, sessionRules)
+    createSession = (sessionId: string, userId: string, delayBufferRules: DelayedGetterRules, sessionRules?: Partial<SessionRules>, userToken?: string) => {
+        return this.sessionManager.createSession(sessionId, userId, delayBufferRules, sessionRules, userToken)
     }
 
     updateSessions = (updates: { [key: string]: any; }, userId?: string, userToken?: string, passwords?: {[key:string]:string}, adminId?: string, adminToken?: string) => {
